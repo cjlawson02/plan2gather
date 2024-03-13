@@ -1,12 +1,15 @@
-import { Button, Dialog, DialogActions, DialogContent } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, Divider } from '@mui/material';
 import { useCallback, useRef, useState } from 'react';
 
 import DetailsStep from '@/app/components/creation-form/steps/details/details';
+import PossibleDatesStep from '@/app/components/creation-form/steps/possible-dates/possible-dates';
 import LoadingButton from '@/app/components/shared/buttons/loading/loading';
 import { trpc } from '@/trpc';
+import { timeOnlyISO } from '@backend/utils';
 
 import DeleteGatheringDialog from './delete-gathering/delete-gathering';
 
+import type { PossibleDatesData } from '@/app/components/creation-form/creation.store';
 import type { SubmitFunction } from '@/app/components/creation-form/types';
 import type { GatheringFormDetails, GatheringData } from '@backend/types';
 
@@ -22,8 +25,12 @@ export default function DetailsEditDialog(props: DetailsEditDialogProps) {
   const [loading, setLoading] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const formSubmitRef = useRef<{
+  const detailsSubmitRef = useRef<{
     submit: SubmitFunction<GatheringFormDetails>;
+  }>();
+
+  const periodSubmitRef = useRef<{
+    submit: SubmitFunction<PossibleDatesData>;
   }>();
 
   const handleClose = useCallback(() => {
@@ -44,11 +51,28 @@ export default function DetailsEditDialog(props: DetailsEditDialogProps) {
   });
 
   const handleSubmit = useCallback(async () => {
-    const result = await formSubmitRef.current?.submit();
-    if (result?.valid === true && result.data != null) {
+    const detailsResult = await detailsSubmitRef.current?.submit();
+    const periodResult = await periodSubmitRef.current?.submit();
+    if (
+      detailsResult?.valid === true &&
+      periodResult?.valid === true &&
+      detailsResult.data != null &&
+      periodResult.data != null
+    ) {
       submitAPI.mutate({
         id: data.id,
-        details: result.data,
+        details: {
+          name: detailsResult.data.name,
+          description: detailsResult.data.description,
+          timezone: detailsResult.data.timezone,
+        },
+        allowedPeriod: {
+          weekdays: periodResult.data.weekdays,
+          period: {
+            start: periodResult.data.period.start.toISO()!,
+            end: periodResult.data.period.end.toISO()!,
+          },
+        },
       });
     }
   }, [data.id, submitAPI]);
@@ -57,6 +81,14 @@ export default function DetailsEditDialog(props: DetailsEditDialogProps) {
     name: data.name,
     description: data.description,
     timezone: data.timezone,
+  };
+
+  const possibleDates: PossibleDatesData = {
+    weekdays: data.allowedPeriod.weekdays,
+    period: {
+      start: timeOnlyISO(data.allowedPeriod.period.start),
+      end: timeOnlyISO(data.allowedPeriod.period.end),
+    },
   };
 
   return (
@@ -68,7 +100,13 @@ export default function DetailsEditDialog(props: DetailsEditDialogProps) {
         open={open}
       >
         <DialogContent>
-          <DetailsStep initial={details} ref={formSubmitRef} disableTimezoneEdit />
+          <DetailsStep initial={details} ref={detailsSubmitRef} disableTimezoneEdit />
+          <Divider sx={{ my: 2 }} />
+          <PossibleDatesStep
+            initial={possibleDates}
+            timezone={details.timezone}
+            ref={periodSubmitRef}
+          />
         </DialogContent>
         <DialogActions>
           <Button

@@ -1,64 +1,49 @@
-import EditIcon from '@mui/icons-material/Edit';
-import { Box, IconButton, Stack } from '@mui/material';
+import { Box, Stack } from '@mui/material';
 import Typography from '@mui/material/Typography';
 import { DateTime } from 'luxon';
-import { useState } from 'react';
 
-import DetailsEditDialog from '@/app/components/dialogs/details-edit/details-edit';
-import { trpc } from '@/trpc';
+import useCreationStore from '@/app/components/creation-form/creation.store';
+import BulletedList from '@/app/components/shared/bulleted-list/bulleted-list';
+import BulletedListItem from '@/app/components/shared/bulleted-list/bulleted-list-item/bulleted-list-item';
+import { formattedWeekday } from '@/app/components/time-grid/time-grid.helpers';
 
-import type { GatheringFormDetails, GatheringData } from '@backend/types';
-
-export interface GatheringDetailsProps {
-  gatheringData: GatheringData | GatheringFormDetails;
-}
-
-export default function GatheringDetails({ gatheringData }: GatheringDetailsProps) {
+export default function GatheringDetails() {
   const userTimezone = DateTime.local().zoneName;
 
-  const [openEdit, setOpenEdit] = useState(false);
-
-  let canEdit = false;
-  if ('id' in gatheringData) {
-    canEdit =
-      trpc.gatherings.getEditPermission.useQuery({
-        id: gatheringData.id,
-      }).data ?? false;
-  }
+  const details = useCreationStore((state) => state.details);
+  const allowedPeriod = useCreationStore((state) => state.allowedPeriod);
 
   return (
     <>
-      <Stack direction="row" alignItems="center" spacing={2}>
-        <Typography variant="h5" component="h2">
-          {gatheringData.name}
-        </Typography>
-        {canEdit && (
-          <IconButton
-            onClick={() => {
-              setOpenEdit(true);
-            }}
-            aria-label="edit"
-          >
-            <EditIcon />
-          </IconButton>
-        )}
-      </Stack>
+      <Typography variant="h6">{details.name}</Typography>
       <Typography variant="body1" gutterBottom>
-        {gatheringData.description}
+        {details.description}
       </Typography>
       <Box sx={{ mb: 1 }}>
-        <Typography variant="body2">Event Timezone: {gatheringData.timezone}</Typography>
-        {gatheringData.timezone !== userTimezone && (
+        <Typography variant="body2">Event Timezone: {details.timezone}</Typography>
+        {details.timezone !== userTimezone && (
           <Typography variant="body2">Your Timezone: {userTimezone}</Typography>
         )}
       </Box>
-      <DetailsEditDialog
-        data={gatheringData as GatheringData}
-        open={openEdit}
-        onClose={() => {
-          setOpenEdit(false);
-        }}
-      />
+      {/* show allowed weekdays and allowed time */}
+      <Typography variant="h6">Days of the week</Typography>
+      <Typography variant="subtitle2">
+        Participants will submit their availability for the following days of the week:
+      </Typography>
+      <Stack direction="row" spacing={1}>
+        <BulletedList>
+          {allowedPeriod.weekdays.map((weekday) => (
+            <BulletedListItem key={weekday}>{formattedWeekday(weekday)}</BulletedListItem>
+          ))}
+        </BulletedList>
+      </Stack>
+      <Typography variant="h6">Time Range</Typography>
+      <Typography variant="subtitle2">
+        Participants will submit their availability for the following time range:
+      </Typography>
+      <Typography variant="body1">
+        {allowedPeriod.period.start.toFormat('t')} - {allowedPeriod.period.end.toFormat('t')}
+      </Typography>
     </>
   );
 }

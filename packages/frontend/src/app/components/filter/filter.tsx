@@ -1,6 +1,5 @@
-import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import FormGroup from '@mui/material/FormGroup';
+import { Stack } from '@mui/material';
+import Chip from '@mui/material/Chip';
 import { useCallback, useEffect, useState } from 'react';
 
 import useGatheringViewData from '@/app/pages/gathering-view/gathering-view.store';
@@ -16,7 +15,7 @@ export default function Filter({ userLabels }: FilterProps) {
   }, {});
   const [state, setState] = useState(initialState);
 
-  const { setCheckedUsers } = useGatheringViewData();
+  const setCheckedUsers = useGatheringViewData((state) => state.setCheckedUsers);
 
   const updateCheckedUsers = useCallback(
     (checked: Record<string, boolean>) => {
@@ -29,12 +28,12 @@ export default function Filter({ userLabels }: FilterProps) {
     [setCheckedUsers]
   );
 
-  const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleToggle = useCallback(
+    (userLabel: string) => {
       setState((prev) => {
         const result = {
           ...prev,
-          [event.target.name]: event.target.checked,
+          [userLabel]: !prev[userLabel],
         };
 
         updateCheckedUsers(result);
@@ -51,14 +50,21 @@ export default function Filter({ userLabels }: FilterProps) {
   }, [updateCheckedUsers]);
 
   return (
-    <FormGroup>
+    <Stack
+      direction="row"
+      sx={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 0.5 }}
+      spacing={1}
+    >
       {userLabels.map((userLabel) => (
-        <FormControlLabel
+        <Chip
           key={userLabel}
-          control={<Checkbox checked={state[userLabel]} onChange={handleChange} name={userLabel} />}
           label={userLabel}
+          onClick={() => {
+            handleToggle(userLabel);
+          }}
+          color={state[userLabel] ? 'primary' : 'default'}
         />
       ))}
-    </FormGroup>
+    </Stack>
   );
 }

@@ -3,21 +3,17 @@ import { forwardRef, useImperativeHandle } from 'react';
 
 import GatheringDetails from '@/app/components/gathering-details/gathering-details';
 
-import type { CreationStore } from '@/app/components/creation-form/creation.store';
-
-const ConfirmationStep = forwardRef<unknown, { initial: CreationStore }>(({ initial }, ref) => {
+const ConfirmationStep = forwardRef<unknown, unknown>((_, ref) => {
   useImperativeHandle(ref, () => ({
     submit: () => ({
       valid: true,
     }),
   }));
 
-  const { details } = initial;
-
   return (
     <>
       <Typography variant="h5">Confirm Gathering</Typography>
-      <GatheringDetails gatheringData={details!} />
+      <GatheringDetails />
     </>
   );
 });

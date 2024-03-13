@@ -14,7 +14,7 @@ export const Primary: Story = {
       name: 'Test Gathering',
       description: 'This is a test gathering',
       timezone: 'America/New_York',
-      allowedPeriods: [{ start: '', end: '' }],
+      allowedPeriod: [{ start: '', end: '' }],
       id: '123',
       availability: [{ start: '', end: '' }],
       creationDate: '',

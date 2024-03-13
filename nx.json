@@ -83,5 +83,17 @@
         "cacheableOperations": ["build-storybook", "build", "lint", "test", "generateBackendTypes"]
       }
     }
-  }
+  },
+  "plugins": [
+    {
+      "plugin": "@nx/vite/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "previewTargetName": "preview",
+        "testTargetName": "test",
+        "serveTargetName": "serve",
+        "serveStaticTargetName": "serve-static"
+      }
+    }
+  ]
 }

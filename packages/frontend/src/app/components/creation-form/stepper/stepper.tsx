@@ -1,10 +1,3 @@
-import {
-  type Availability,
-  type GatheringFormData,
-  type GatheringFormDetails,
-  type Weekday,
-} from '@backend/types';
-import { Typography } from '@mui/material';
 import Container from '@mui/material/Container';
 import Step from '@mui/material/Step';
 import StepContent from '@mui/material/StepContent';
@@ -14,18 +7,20 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import { useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import useCreationStore, {
-  type CreationStore,
-} from '@/app/components/creation-form/creation.store';
+import useCreationStore from '@/app/components/creation-form/creation.store';
 import Confirmation from '@/app/components/creation-form/steps/confirmation/confirmation';
 import DetailsForm from '@/app/components/creation-form/steps/details/details';
 import PossibleDates from '@/app/components/creation-form/steps/possible-dates/possible-dates';
-import TimePeriodsStep from '@/app/components/creation-form/steps/time-periods/time-periods';
 import { trpc } from '@/trpc';
 
 import CreationStepperControls from './stepper-controls/stepper-controls';
 
+import type {
+  CreationStore,
+  PossibleDatesData,
+} from '@/app/components/creation-form/creation.store';
 import type { SubmitFunction } from '@/app/components/creation-form/types';
+import type { GatheringFormData, GatheringFormDetails } from '@backend/types';
 import type { Theme } from '@mui/material/styles';
 
 // Define a type for step information
@@ -40,21 +35,20 @@ export default function CreationStepper() {
   const [loading, setLoading] = useState(false);
 
   const detailsRef = useRef<{ submit: SubmitFunction<GatheringFormDetails> }>(null);
-  const possibleDatesRef = useRef<{ submit: SubmitFunction<Weekday[]> }>(null);
-  const timePeriodsRef = useRef<{ submit: SubmitFunction<Availability> }>(null);
+  const possibleDatesRef = useRef<{
+    submit: SubmitFunction<PossibleDatesData>;
+  }>(null);
   const confirmRef = useRef<{ submit: SubmitFunction<undefined> }>(null);
 
   // Define your steps with their respective refs
-  const steps: Array<StepInfo<GatheringFormDetails | Weekday[] | Availability | undefined>> =
-    useMemo(
-      () => [
-        { name: 'Details', submitRef: detailsRef },
-        { name: 'Possible Dates', submitRef: possibleDatesRef },
-        { name: 'Time Periods', submitRef: timePeriodsRef },
-        { name: 'Confirm Gathering', submitRef: confirmRef },
-      ],
-      []
-    );
+  const steps: Array<StepInfo<GatheringFormDetails | PossibleDatesData | undefined>> = useMemo(
+    () => [
+      { name: 'Details', submitRef: detailsRef },
+      { name: 'Possible Dates', submitRef: possibleDatesRef },
+      { name: 'Confirm Gathering', submitRef: confirmRef },
+    ],
+    []
+  );
 
   const store = useCreationStore();
 
@@ -74,12 +68,18 @@ export default function CreationStepper() {
   });
 
   const transformToGatheringData = useCallback((data: CreationStore): GatheringFormData | null => {
-    if (data.details != null && data.possibleDates.length > 0) {
+    if (data.details != null && data.allowedPeriod.weekdays.length > 0) {
       const result = {
         name: data.details.name,
         description: data.details.description,
         timezone: data.details.timezone,
-        allowedPeriods: data.timePeriods,
+        allowedPeriod: {
+          weekdays: data.allowedPeriod.weekdays,
+          period: {
+            start: data.allowedPeriod.period.start.toISO()!,
+            end: data.allowedPeriod.period.end.toISO()!,
+          },
+        },
       };
       return result;
     }
@@ -102,12 +102,9 @@ export default function CreationStepper() {
               store.setDetails(result.data as GatheringFormDetails);
               break;
             case 1:
-              store.setPossibleDates(result.data as Weekday[]);
+              store.setAllowedPeriod(result.data as PossibleDatesData);
               break;
             case 2:
-              store.setTimePeriods(result.data as Availability);
-              break;
-            case 3:
             default:
               break;
           }
@@ -136,26 +133,15 @@ export default function CreationStepper() {
       case 'Details':
         return <DetailsForm initial={store.details} ref={step.submitRef} />;
       case 'Possible Dates':
-        return <PossibleDates initial={store.possibleDates} ref={step.submitRef} />;
-      case 'Time Periods':
         return (
-          <>
-            <Typography variant="h5">Time Periods</Typography>
-            <Typography variant="body1" paragraph>
-              You may restrict time period for the possible dates. If you do not restrict the time
-              period, the gathering will allow scheduling during the entire day.
-            </Typography>
-            <TimePeriodsStep
-              initial={store.timePeriods}
-              days={store.possibleDates}
-              timezone={store.details?.timezone}
-              ref={step.submitRef}
-              assumeFullDay
-            />
-          </>
+          <PossibleDates
+            initial={store.allowedPeriod}
+            timezone={store.details?.timezone}
+            ref={step.submitRef}
+          />
         );
       case 'Confirm Gathering':
-        return <Confirmation initial={store} ref={step.submitRef} />;
+        return <Confirmation ref={step.submitRef} />;
       default:
         return null;
     }

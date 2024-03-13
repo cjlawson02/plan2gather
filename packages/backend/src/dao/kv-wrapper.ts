@@ -49,6 +49,17 @@ export default class KvWrapper {
     return possiblyNullJson.filter((json) => json != null);
   }
 
+  async safeGetAll<T extends ZodTypeAny>(
+    parser: T
+  ): Promise<Array<SafeParseReturnType<T, zodInfer<T>>>> {
+    const list = await this.kv.list();
+    return await Promise.all(
+      list.keys.map(async (key) => {
+        return await this.safeGet<T>(parser, key.name);
+      })
+    );
+  }
+
   async put<T extends ZodTypeAny, U extends zodInfer<T>>(
     parser: T,
     key: string,

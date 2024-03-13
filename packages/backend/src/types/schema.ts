@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { consolidateAvailability } from '@backend/utils';
 
 import { weekdays } from './const';
+
+import type { DateTime } from 'luxon';
 // eslint-disable-next-line import/no-cycle
 
 /**
@@ -37,6 +39,13 @@ export const dateRangeSchema = z
   .readonly();
 
 export type DateRange = z.infer<typeof dateRangeSchema>;
+
+export interface DateRangeLuxon {
+  start: DateTime;
+  end: DateTime;
+}
+
+export type AvailabilityLuxon = Record<Weekday, DateRangeLuxon[]>;
 
 export const weekdaySchema = z.enum(weekdays).readonly();
 
@@ -83,18 +92,22 @@ export const gatheringFormDetailsSchema = z.object({
 
 export type GatheringFormDetails = z.infer<typeof gatheringFormDetailsSchema>;
 
-/**
- * Gathering form data schema.
- *
- * The gathering form data is the required data to create a gathering.
- */
-export const gatheringFormPeriodsSchema = z.object({
-  allowedPeriods: limitedAvailabilitySchema,
+export const gatheringFormPeriodSchema = z
+  .object({
+    weekdays: z.array(weekdaySchema),
+    period: dateRangeSchema,
+  })
+  .readonly();
+
+export const gatheringFormPeriodDataSchema = z.object({
+  allowedPeriod: gatheringFormPeriodSchema,
 });
 
-export type GatheringFormPeriods = z.infer<typeof gatheringFormPeriodsSchema>;
+export type GatheringFormPeriods = z.infer<typeof gatheringFormPeriodDataSchema>;
 
-export const gatheringFormDataSchema = gatheringFormDetailsSchema.merge(gatheringFormPeriodsSchema);
+export const gatheringFormDataSchema = gatheringFormDetailsSchema.merge(
+  gatheringFormPeriodDataSchema
+);
 
 export type GatheringFormData = z.infer<typeof gatheringFormDataSchema>;
 
@@ -116,6 +129,7 @@ export const gatheringBackendDataSchema = z
     creationUserId: z.string(),
     availability: userAvailabilityBackendSchema,
   })
+  .strict()
   .readonly();
 
 export type GatheringBackendData = z.infer<typeof gatheringBackendDataSchema>;

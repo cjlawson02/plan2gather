@@ -2,11 +2,41 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-import { checker } from 'vite-plugin-checker';
 
-/// <reference types='viztest' />
+/// <reference types='vitest' />
 export default defineConfig(({ mode }) => ({
   root: __dirname,
+
+  cacheDir: '../../node_modules/.vite/packages/frontend',
+
+  server: {
+    port: 4200,
+    host: 'localhost',
+  },
+
+  preview: {
+    port: 4300,
+    host: 'localhost',
+  },
+
+  plugins: [
+    react(),
+    nxViteTsPaths(),
+    mode === 'prod'
+      ? sentryVitePlugin({
+          org: 'plan2gather',
+          project: 'javascript-react',
+          telemetry: false,
+          authToken: process.env.SENTRY_RELEASE_TOKEN,
+        })
+      : undefined,
+  ],
+
+  // Uncomment this if you are using workers.
+  // worker: {
+  //  plugins: [ nxViteTsPaths() ],
+  // },
+
   build: {
     outDir: '../../dist/packages/frontend',
     reportCompressedSize: true,
@@ -27,45 +57,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  cacheDir: '../../node_modules/.vite/plan2gather',
-
-  optimizeDeps: {
-    include: ['@mui/material/Tooltip'],
-  },
-
-  server: {
-    port: 4200,
-    host: 'localhost',
-  },
-
-  preview: {
-    port: 4300,
-    host: 'localhost',
-  },
-
-  plugins: [
-    react(),
-    nxViteTsPaths(),
-    checker({
-      typescript: {
-        root: `${process.cwd()}/packages/frontend`,
-        tsconfigPath: 'tsconfig.app.json',
-      },
-    }),
-    mode === 'prod'
-      ? sentryVitePlugin({
-          org: 'plan2gather',
-          project: 'javascript-react',
-          telemetry: false,
-          authToken: process.env.SENTRY_RELEASE_TOKEN,
-        })
-      : undefined,
-  ],
-
-  // Uncomment this if you are using workers.
-  // worker: {
-  //  plugins: [ nxViteTsPaths() ],
-  // },
 
   test: {
     watch: false,

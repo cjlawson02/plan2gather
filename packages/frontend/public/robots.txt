@@ -1,6 +1,6 @@
-# Block all crawlers for /gatherings
+# Block all crawlers for /gathering
 User-agent: *
-Disallow: /gatherings/
+Disallow: /gathering/
 
 # Allow all crawlers
 User-agent: *

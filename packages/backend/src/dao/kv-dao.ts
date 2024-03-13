@@ -1,30 +1,18 @@
-import {
-  type GatheringBackendData,
-  type GatheringFormDetails,
-  type GatheringListResponseData,
-  type UserAvailabilityBackend,
-  gatheringBackendDataSchema,
-  gatheringDataSchema,
-} from '@backend/types';
+import { gatheringBackendDataSchema, gatheringDataSchema } from '@backend/types';
 
 import type KvWrapper from './kv-wrapper';
+import type {
+  GatheringBackendData,
+  GatheringFormDetails,
+  GatheringFormPeriods,
+  GatheringListResponseData,
+  UserAvailabilityBackend,
+} from '@backend/types';
 
 const EXPIRATION_TTL = 60 * 60 * 24 * 7; // 7 days
 
 export default class KVDAO {
   constructor(private readonly gatheringsNamespace: KvWrapper) {}
-
-  /**
-   * Get a gathering.
-   *
-   * @param id - The ID of the gathering to get.
-   * @returns - The gathering with the given ID.
-   */
-  async getGathering(id: string) {
-    // The backend data is gatheringBackendDataSchema, but we want to return the
-    // data without the creationUserId.
-    return await this.gatheringsNamespace.get(gatheringDataSchema, id);
-  }
 
   /**
    * Get a gathering with the creationUserId.
@@ -35,6 +23,18 @@ export default class KVDAO {
    */
   async getBackendGathering(id: string) {
     return await this.gatheringsNamespace.get(gatheringBackendDataSchema, id);
+  }
+
+  /**
+   * Get a gathering.
+   *
+   * @param id - The ID of the gathering to get.
+   * @returns - The gathering with the given ID.
+   */
+  async getGathering(id: string) {
+    // The backend data is gatheringBackendDataSchema, but we want to return the
+    // data without the creationUserId.
+    return gatheringDataSchema.parse(await this.getBackendGathering(id));
   }
 
   /**
@@ -106,6 +106,16 @@ export default class KVDAO {
     };
 
     await this.putGathering(gatheringWithDetails);
+  }
+
+  async putAllowedPeriod(id: string, allowedPeriod: GatheringFormPeriods) {
+    const existingGathering = await this.getBackendGathering(id);
+    const gatheringWithPeriod: GatheringBackendData = {
+      ...existingGathering,
+      ...allowedPeriod,
+    };
+
+    await this.putGathering(gatheringWithPeriod);
   }
 
   /**
